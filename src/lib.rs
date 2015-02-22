@@ -28,6 +28,251 @@ pub trait WriteEndian {
 
 
 
+
+
+impl ReadEndian for u8 {
+    fn read_be(&self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer length must be exactly 1 bytes",
+                None));
+        }
+        let word = self.to_be();
+        unsafe {
+            ptr::copy_nonoverlapping_memory(
+                buf.get_unchecked_mut(0),
+                &word as *const _ as *const u8, 1);
+        }
+        Ok(1)
+    }
+    fn read_le(&self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer length must be exactly 1 bytes",
+                None));
+        }
+        let word = self.to_le();
+        unsafe {
+            ptr::copy_nonoverlapping_memory(
+                buf.get_unchecked_mut(0),
+                &word as *const _ as *const u8, 1);
+        }
+        Ok(1)
+    }
+}
+
+impl<'a> ReadEndian for &'a [u8] {
+    fn read_be(&self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if buf.len() != self.len()*1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer must have exactly the same length as the output buffer",
+                None));
+        }
+        unsafe {
+            let mut bytes: *mut u8 = buf.get_unchecked_mut(0);
+            let mut words: *const u8 = self.get_unchecked(0);
+            for _ in 0..self.len() {
+                let word = (*words).to_be();
+                ptr::copy_nonoverlapping_memory(bytes, &word as *const _ as *const u8, 1);
+                bytes = bytes.offset(1);
+                words = words.offset(1);
+            }
+        }
+        Ok(buf.len())
+    }
+    fn read_le(&self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if buf.len() != self.len()*1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer must have exactly the same length as the output buffer",
+                None));
+        }
+        unsafe {
+            let mut bytes: *mut u8 = buf.get_unchecked_mut(0);
+            let mut words: *const u8 = self.get_unchecked(0);
+            for _ in 0..self.len() {
+                let word = (*words).to_le();
+                ptr::copy_nonoverlapping_memory(bytes, &word as *const _ as *const u8, 1);
+                bytes = bytes.offset(1);
+                words = words.offset(1);
+            }
+        }
+        Ok(buf.len())
+    }
+}
+
+impl ReadEndian for Vec<u8> {
+    fn read_be(&self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if buf.len() != self.len()*1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer must have exactly the same length as the output buffer",
+                None));
+        }
+        for (word, mut bytes) in self.iter().zip(buf.chunks_mut(1)) {
+            try!(word.to_le().read_be(bytes));
+        }
+        Ok(buf.len())
+    }
+    fn read_le(&self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if buf.len() != self.len()*1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer must have exactly the same length as the output buffer",
+                None));
+        }
+        for (word, mut bytes) in self.iter().zip(buf.chunks_mut(1)) {
+            try!(word.to_le().read_le(bytes));
+        }
+        Ok(buf.len())
+    }
+}
+
+impl WriteEndian for u8 {
+    fn write_be(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer length must be exactly 1 bytes",
+                None));
+        }
+        unsafe {
+            ptr::copy_nonoverlapping_memory(
+                self as *mut _ as *mut u8,
+                buf.get_unchecked(0), 1);
+        }
+        *self = Int::from_be(*self);
+        Ok(1)
+    }
+    fn write_le(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer length must be exactly 1 bytes",
+                None));
+        }
+        unsafe {
+            ptr::copy_nonoverlapping_memory(
+                self as *mut _ as *mut u8,
+                buf.get_unchecked(0), 1);
+        }
+        *self = Int::from_le(*self);
+        Ok(1)
+    }
+}
+
+impl<'a> WriteEndian for &'a mut [u8] {
+    fn write_be(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if buf.len() != self.len()*1 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer must have exactly the same length as the input buffer",
+                None));
+        }
+        for (word, bytes) in self.iter_mut().zip(buf.chunks(1)) {
+            try!(word.write_be(bytes));
+        }
+        Ok(buf.len())
+    }
+    fn write_le(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if buf.len() != self.len()*1 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer must have exactly the same length as the input buffer",
+                None));
+        }
+        for (word, bytes) in self.iter_mut().zip(buf.chunks(1)) {
+            try!(word.write_le(bytes));
+        }
+        Ok(buf.len())
+    }
+}
+
+impl WriteEndian for Vec<u8> {
+    fn write_be(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if self.len() != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer must be empty",
+                None));
+        }
+        for bytes in buf.chunks(1) {
+            let mut word = 0u8;
+            try!(word.write_be(bytes));
+            self.push(word);
+        }
+        Ok(buf.len())
+    }
+    fn write_le(&mut self, buf: &[u8]) -> io::Result<usize> {
+        if buf.len() % 1 != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "input buffer length must be a multiple of 1 bytes",
+                None));
+        }
+        if self.len() != 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::WriteZero,
+                "output buffer must be empty",
+                None));
+        }
+        for bytes in buf.chunks(1) {
+            let mut word = 0u8;
+            try!(word.write_le(bytes));
+            self.push(word);
+        }
+        Ok(buf.len())
+    }
+}
+
+
+
+
 impl ReadEndian for u32 {
     fn read_be(&self, buf: &mut [u8]) -> io::Result<usize> {
         if buf.len() != 4 {
