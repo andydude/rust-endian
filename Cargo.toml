@@ -2,6 +2,11 @@
 name = "endian"
 version = "0.1.0"
 authors = ["Andrew Robbins <and_j_rob@yahoo.com>"]
+license = "LGPL3"
+homepage = "https://andydude.github.io/rust-endian/endian/index.html"
+repository = "https://github.com/andydude/rust-endian/"
+description = "A Rust library for I/O Endianness."
+readme = "README.md"
 
 [dependencies]
 bswap = "*"
