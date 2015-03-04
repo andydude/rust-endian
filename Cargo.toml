@@ -1,6 +1,6 @@
 [package]
 name = "endian"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Andrew Robbins <and_j_rob@yahoo.com>"]
 license = "LGPL3"
 homepage = "https://andydude.github.io/rust-endian/endian/index.html"
